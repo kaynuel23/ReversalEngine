@@ -1,0 +1,5 @@
+C:\BankOne.ReversalEngine\BankOneReversal\bin\Debug\BankOneReversal.dll
+C:\BankOne.ReversalEngine\BankOneReversal\bin\Debug\BankOneReversal.pdb
+C:\BankOne.ReversalEngine\BankOneReversal\obj\Debug\BankOneReversal.csprojResolveAssemblyReference.cache
+C:\BankOne.ReversalEngine\BankOneReversal\obj\Debug\BankOneReversal.dll
+C:\BankOne.ReversalEngine\BankOneReversal\obj\Debug\BankOneReversal.pdb
