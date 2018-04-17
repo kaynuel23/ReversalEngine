@@ -16,7 +16,7 @@ namespace BankOne.ReversalEngine.Data
         {
             _tableName = tableName;
         }
-        public Task<Reversals> GetPendingReversals()
+        public Task<IEnumerable<Reversals>> GetPendingReversals()
         {
             using (IDbConnection conn = Connection)
             {
@@ -24,20 +24,20 @@ namespace BankOne.ReversalEngine.Data
             }
         }
 
-        public override void Update(Reversals entity)
+        public async new Task<int> Update(Reversals entity)
         {
             using (IDbConnection conn = Connection)
             {
                 string updateQuery = $@"UPDATE {_tableName} SET REVERSALSTATUS = @REVERSALSTATUS WHERE ID=@ID";
                 //conn.Open();
-                SqlMapper.Execute(conn, updateQuery, new
+                return await SqlMapper.ExecuteAsync(conn, updateQuery, new
                 {
                     REVERSALSTATUS = entity.ReversalStatus,
                     ID = entity.ID
                 });
             }
         }
-        public new long Insert(string MFBCode,  string uniqueIdentifier)
+        public async Task<int> Insert(string MFBCode,  string uniqueIdentifier)
         {
             using (IDbConnection conn = Connection)
             {
@@ -45,11 +45,12 @@ namespace BankOne.ReversalEngine.Data
                                         OUTPUT inserted.ID 
                                         VALUES (@MFBCode,@UniqueIdentifier)";
                 //conn.Open();
-                return SqlMapper.Query<int>(conn, insertQuery, new
+                IEnumerable<int> result =  await SqlMapper.QueryAsync<int>(conn, insertQuery, new
                 {
                     MFBCode = MFBCode,
                     UniqueIdentifier = uniqueIdentifier
-                }).Single();
+                });
+                return result.SingleOrDefault();
             }
         }
     }

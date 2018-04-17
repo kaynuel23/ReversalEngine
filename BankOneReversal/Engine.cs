@@ -42,14 +42,16 @@ namespace BankOneReversal
             this.timer.Stop();
             try
             {
-                Task<Reversals> results = await new ReversalsRepository("Reversals").GetPendingReversals();
+                IEnumerable<Reversals> results = await new ReversalsRepository("Reversals").GetPendingReversals();
                 
                 Parallel.ForEach(results, async reversal =>
                 {
-                    bool result = await ReversalService.ProcessReversal("1", "111");
+                    bool result = await ReversalService.ProcessReversal(reversal.MFBCode,reversal.UniqueIdentifier);
                     if (result)
                     {
                         //Update that it has been processed
+                        reversal.ReversalStatus = ReversalStatus.Successful;
+                        new ReversalsRepository("Reversals").Update(reversal);
                     }
                 });
                 

@@ -26,12 +26,12 @@ namespace BankOne.ReversalEngine
     {
         [Route("DoTransactionReversalByUniqueIdentifier")]
         [HttpPost]
-        public bool DoTransactionReversal(string mfbCode, string uniqueIdentifier)
+        public async Task<bool> DoTransactionReversal(string mfbCode, string uniqueIdentifier)
         {
             //Here we log this and return true
             try
             {
-                long result = new ReversalsRepository("Reversals").Insert(mfbCode, uniqueIdentifier);
+                int result = await new ReversalsRepository("Reversals").Insert(mfbCode, uniqueIdentifier);
                 return true;
             }
             catch (Exception)

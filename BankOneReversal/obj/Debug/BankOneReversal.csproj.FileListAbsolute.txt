@@ -3,3 +3,9 @@ C:\BankOne.ReversalEngine\BankOneReversal\bin\Debug\BankOneReversal.pdb
 C:\BankOne.ReversalEngine\BankOneReversal\obj\Debug\BankOneReversal.csprojResolveAssemblyReference.cache
 C:\BankOne.ReversalEngine\BankOneReversal\obj\Debug\BankOneReversal.dll
 C:\BankOne.ReversalEngine\BankOneReversal\obj\Debug\BankOneReversal.pdb
+C:\BankOne.ReversalEngine\BankOneReversal\bin\Debug\Dapper.dll
+C:\BankOne.ReversalEngine\BankOneReversal\bin\Debug\Newtonsoft.Json.dll
+C:\BankOne.ReversalEngine\BankOneReversal\bin\Debug\RepoWrapper.dll
+C:\BankOne.ReversalEngine\BankOneReversal\bin\Debug\Dapper.xml
+C:\BankOne.ReversalEngine\BankOneReversal\bin\Debug\Newtonsoft.Json.xml
+C:\BankOne.ReversalEngine\BankOneReversal\bin\Debug\RepoWrapper.pdb
