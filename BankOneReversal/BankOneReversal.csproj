@@ -32,6 +32,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -41,9 +42,20 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Class1.cs" />
+    <Compile Include="DAO\DapperRepository.cs" />
+    <Compile Include="DAO\GenericUnitOfWork.cs" />
+    <Compile Include="DAO\IRepository.cs" />
+    <Compile Include="DAO\ReversalsRepository.cs" />
+    <Compile Include="Engine.cs" />
     <Compile Include="Logger.cs" />
+    <Compile Include="Mfb.cs" />
+    <Compile Include="Model\Entity.cs" />
+    <Compile Include="Model\IEntity.cs" />
+    <Compile Include="Model\Reversals.cs" />
+    <Compile Include="PostingsMiddleware.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="PublisherAPI.cs" />
+    <Compile Include="ReversalService.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

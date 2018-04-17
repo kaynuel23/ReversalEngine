@@ -4,9 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BankOneReversal
+namespace BankOne.ReversalEngine.Model
 {
-    public class Class1
+    public class Entity : IEntity
     {
+        public virtual long ID { get; set; }
     }
 }
