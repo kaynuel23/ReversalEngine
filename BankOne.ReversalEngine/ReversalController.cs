@@ -1,4 +1,5 @@
 ﻿using BankOne.ReversalEngine.Data;
+using BankOne.ReversalEngine.Model;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -24,6 +25,13 @@ namespace BankOne.ReversalEngine
     [RoutePrefix("api/Reversal")]
     public class ReversalController : ApiController
     {
+        GenericUnitOfWork uow = null;
+        private BankOneReversal.Tracing.Logger logger;
+        public ReversalController()
+        {
+            uow = new GenericUnitOfWork("Reversals");
+            logger = new BankOneReversal.Tracing.Logger();
+        }
         [Route("DoTransactionReversalByUniqueIdentifier")]
         [HttpPost]
         public async Task<bool> DoTransactionReversal(string mfbCode, string uniqueIdentifier)
@@ -31,12 +39,24 @@ namespace BankOne.ReversalEngine
             //Here we log this and return true
             try
             {
-                int result = await new ReversalsRepository("Reversals").Insert(mfbCode, uniqueIdentifier);
+                //check if it has been sent before
+                //return true if so
+                logger.Log($"Log {uniqueIdentifier} for {mfbCode}");
+                IEnumerable <Reversals> reversals = await uow.Repository<Reversals>().GetAsync(filter: x => x.UniqueIdentifier == uniqueIdentifier && x.MFBCode == mfbCode);
+                if(reversals != null || reversals.Count() > 0)
+                {
+                    logger.Log($"Exists {uniqueIdentifier} for {mfbCode}");
+                    return true;
+                }
+                int result = await uow.Repository<Reversals>().InsertAsync(new Reversals() { UniqueIdentifier = uniqueIdentifier, MFBCode = mfbCode });
+                //new ReversalsRepository("Reversals").Insert(mfbCode, uniqueIdentifier);
+                logger.Log($"Done Logging {uniqueIdentifier} for {mfbCode}");
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 //log the error
+                logger.Log($"Error {uniqueIdentifier} for {mfbCode} - {ex.Message}. {ex.StackTrace}");
                 return false;
             }
         }

@@ -26,7 +26,7 @@ namespace BankOne.ReversalEngine.Data
                 return repositories[typeof(T)] as IRepository<T>;
             }
 
-            IRepository<T> dapperRepo = new DapperRepository<T>(_tableName);
+            IRepository<T> dapperRepo = new DapperRepository<T>(_tableName);//For maint, let this passed from constructor
             repositories.Add(typeof(T), dapperRepo);
             return dapperRepo;
 

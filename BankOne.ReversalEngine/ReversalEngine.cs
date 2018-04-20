@@ -1,4 +1,5 @@
-﻿using Microsoft.Owin.Hosting;
+﻿using BankOneReversal;
+using Microsoft.Owin.Hosting;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -17,10 +18,12 @@ namespace BankOne.ReversalEngine
         private BankOneReversal.Tracing.Logger logger;
         private const string ASTERIKS = "****************************************************************";
         private const string BLANK_LINE = "                                                               ";
+        private Engine reversalService = null;
         public ReversalEngine()
         {
             InitializeComponent();
             logger = new BankOneReversal.Tracing.Logger();
+            reversalService = new Engine();
         }
         protected override void OnStart(string[] args)
         {
@@ -30,8 +33,8 @@ namespace BankOne.ReversalEngine
             logger.Log("Loaded BankOne.ReversalEngine Web Api...");
             
             logger.Log("Started BankOne.ReversalEngine timer...");
-            //Initialize the section that completes ReversalEngine to be back-dated.
-            //adjustmentService.Start();
+            //Initialize the section that completes ReversalEngine to be posted.
+            reversalService.Start();
             logger.Log("Started BankOne.ReversalEngine.");
             logger.Log(ASTERIKS);
         }
@@ -47,6 +50,7 @@ namespace BankOne.ReversalEngine
             base.OnStop();
             try
             {
+                reversalService.Stop();
             }
             catch { }
             logger.Log("Stopped BankOne.ReversalEngine.");

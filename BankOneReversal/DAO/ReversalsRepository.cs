@@ -16,42 +16,38 @@ namespace BankOne.ReversalEngine.Data
         {
             _tableName = tableName;
         }
-        public Task<IEnumerable<Reversals>> GetPendingReversals()
+        public async Task<IEnumerable<Reversals>> GetPendingReversals()
         {
-            using (IDbConnection conn = Connection)
-            {
-                return SqlMapper.QueryAsync<Reversals>(conn, $"SELECT * FROM {_tableName} where REVERSALSTATUS = @REVERSALSTATUS", new { REVERSALSTATUS = ReversalStatus.Pending }); 
-            }
+            return await WithConnection(async c => {
+                var results = await c.QueryAsync<Reversals>($"SELECT top 20 * FROM {_tableName} where REVERSALSTATUS = @REVERSALSTATUS", new { REVERSALSTATUS = ReversalStatus.Pending });
+                return results;
+            });
         }
 
-        public async new Task<int> Update(Reversals entity)
+        public async Task<int> Update(Reversals entity)
         {
-            using (IDbConnection conn = Connection)
-            {
-                string updateQuery = $@"UPDATE {_tableName} SET REVERSALSTATUS = @REVERSALSTATUS WHERE ID=@ID";
-                //conn.Open();
-                return await SqlMapper.ExecuteAsync(conn, updateQuery, new
+            string updateQuery = $@"UPDATE {_tableName} SET REVERSALSTATUS = @REVERSALSTATUS WHERE ID=@ID";
+            return await WithConnection(async c => {
+                return await c.ExecuteAsync(updateQuery, new
                 {
                     REVERSALSTATUS = entity.ReversalStatus,
                     ID = entity.ID
                 });
-            }
+            });
         }
         public async Task<int> Insert(string MFBCode,  string uniqueIdentifier)
-        {
-            using (IDbConnection conn = Connection)
-            {
-                string insertQuery = @"INSERT INTO [Reversals] ([MFBCode],[UniqueIdentifier])
+        {            
+            string insertQuery = @"INSERT INTO [Reversals] ([MFBCode],[UniqueIdentifier])
                                         OUTPUT inserted.ID 
                                         VALUES (@MFBCode,@UniqueIdentifier)";
-                //conn.Open();
-                IEnumerable<int> result =  await SqlMapper.QueryAsync<int>(conn, insertQuery, new
+            return await WithConnection(async c => {
+                IEnumerable<int> result = await c.QueryAsync<int>(insertQuery, new
                 {
                     MFBCode = MFBCode,
                     UniqueIdentifier = uniqueIdentifier
                 });
                 return result.SingleOrDefault();
-            }
+            });
         }
     }
 }

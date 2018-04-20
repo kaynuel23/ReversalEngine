@@ -12,12 +12,15 @@ namespace BankOneReversal
     public class Engine
     {
         private System.Timers.Timer timer = null;
-
+        private BankOneReversal.Tracing.Logger logger;
+        private GenericUnitOfWork guow = null;
         public Engine()
         {
             this.timer = new System.Timers.Timer();
             this.timer.AutoReset = false;
             this.timer.Elapsed += new System.Timers.ElapsedEventHandler(timer_Elapsed);
+            logger = new Tracing.Logger();
+            guow = new GenericUnitOfWork("Reversals");
         }
 
         public void Start()
@@ -42,24 +45,41 @@ namespace BankOneReversal
             this.timer.Stop();
             try
             {
-                IEnumerable<Reversals> results = await new ReversalsRepository("Reversals").GetPendingReversals();
-                
+                logger.Log($"Begin Reversals Processing");
+                IEnumerable<Reversals> results = await guow.Repository<Reversals>().GetAsync(x => x.ReversalStatus == ReversalStatus.Pending || x.RetryCount < 4);
+                    //new ReversalsRepository("Reversals").GetPendingReversals();
+                logger.Log($"Reversals to process {results.Count()}");
+                results = results.Take(20).ToList();
                 Parallel.ForEach(results, async reversal =>
                 {
+                    logger.Log($"Process");
                     bool result = await ReversalService.ProcessReversal(reversal.MFBCode,reversal.UniqueIdentifier);
                     if (result)
                     {
+                        logger.Log($"Done Processing");
                         //Update that it has been processed
                         reversal.ReversalStatus = ReversalStatus.Successful;
-                        new ReversalsRepository("Reversals").Update(reversal);
+                        await guow.Repository<Reversals>().UpdateAsync(reversal);
+                        //new ReversalsRepository("Reversals").Update(reversal);
+                        logger.Log($"Done Updating");
+                    }
+                    else
+                    {
+                        logger.Log($"Wasnt successful");
+                        //Update that it has been processed
+                        reversal.RetryCount += 1;
+                        reversal.ReversalStatus = ReversalStatus.Failed;
+                        await guow.Repository<Reversals>().UpdateAsync(reversal);
+                        //new ReversalsRepository("Reversals").Update(reversal);
+                        logger.Log($"Done Updating");
                     }
                 });
                 
-                this.timer.Interval = 1000 * Convert.ToInt64(ConfigurationManager.AppSettings["ProcessInterval"]);
+                this.timer.Interval = 100 * Convert.ToInt64(ConfigurationManager.AppSettings["BankOne.ReversalEngine.TimerInterval"]);
             }
             catch (Exception ex)
             {
-
+                logger.Log($"Processing Error - {ex.Message}. {ex.StackTrace}");
             }
             finally
             {

@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.Common;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
@@ -16,7 +17,7 @@ namespace BankOne.ReversalEngine.Data
     public class DapperRepository<T> : IRepository<T> where T : class, IEntity
     {
         private readonly string _tableName;
-        private readonly string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
+        private readonly string connectionString = "";
         public IDbConnection Connection
         {
             get
@@ -31,53 +32,50 @@ namespace BankOne.ReversalEngine.Data
         public DapperRepository(string tableName)
         {
             _tableName = tableName;
+            connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
+        }
+        protected async Task<T> WithConnection<T>(Func<IDbConnection, Task<T>> getData)
+        {
+            try
+            {
+                using (var connection = new SqlConnection(connectionString))
+                {
+                    await connection.OpenAsync(); // Asynchronously open a connection to the database
+                    return await getData(connection); // Asynchronously execute getData, which has been passed in as a Func<IDBConnection, Task<T>>
+                }
+            }
+            catch (TimeoutException ex)
+            {
+                throw new Exception(String.Format("{0}.WithConnection() experienced a SQL timeout", GetType().FullName), ex);
+            }
+            catch (SqlException ex)
+            {
+                throw new Exception(String.Format("{0}.WithConnection() experienced a SQL exception (not a timeout)", GetType().FullName), ex);
+            }
         }
         internal virtual dynamic Mapping(T item)
         {
             return item;
         }
 
-        public virtual void Delete(T entity)
+        public virtual async Task DeleteAsync(T entity)
         {
             //using (IDbConnection conn = Connection)
             {
                 //conn.Open();
                 SqlMapper.Execute(Connection, "DELETE FROM " + _tableName + " WHERE ID=@ID", new { ID = entity.ID });
             }
+            await WithConnection(async c => {
+                return await c.ExecuteAsync( "DELETE FROM " + _tableName + " WHERE ID=@ID", new { ID = entity.ID });
+            });
         }
 
-        public virtual void DeleteById(long id)
+        public virtual async Task DeleteByIdAsync(long id)
         {
-            T entity = GetById(id);
-            Delete(entity);
+            T entity = await GetByIdAsync(id);
+            await DeleteAsync(entity);
         }
-
-        public virtual IEnumerable<T> Get(Expression<Func<T, bool>> filter = null, Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null, string includeProperties = "")
-        {
-            IEnumerable<T> items = null;
-
-            // extract the dynamic sql query and parameters from predicate
-            if (filter != null)
-            {
-                QueryResult result = DynamicQuery.GetDynamicQuery(_tableName, filter);
-
-                //using (IDbConnection cn = Connection)
-                {
-                    //cn.Open();
-                    items = SqlMapper.Query<T>(Connection, result.Sql, (object)result.Param);
-                }
-            }
-            else
-            {
-                //using (IDbConnection conn = Connection)
-                {
-                    //conn.Open();
-                    items = SqlMapper.Query<T>(Connection, "SELECT * FROM " + _tableName).ToList();
-                }
-            }
-
-            return items;
-        }
+        
 
         public virtual async Task<IEnumerable<T>> GetAsync(Expression<Func<T, bool>> filter = null, Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null, string includeProperties = "")
         {
@@ -85,62 +83,31 @@ namespace BankOne.ReversalEngine.Data
             // extract the dynamic sql query and parameters from predicate
             if (filter != null)
             {
-                QueryResult result = DynamicQuery.GetDynamicQuery(_tableName, filter);
-
-                //using (IDbConnection conn = Connection)
-                {
-                    //conn.Open();
-                    var results = await SqlMapper.QueryAsync<T>(Connection, result.Sql, (object)result.Param);
+                QueryResult result = DynamicQuery.GetDynamicQuery(_tableName, filter);                
+                return await WithConnection(async c => {                    
+                    var results = await c.QueryAsync<T>(result.Sql, (object)result.Param);
                     return results;
-                }
+                });
             }
             else
             {
-                //using (IDbConnection conn = Connection)
-                {
-                    //conn.Open();
-                    var results = await SqlMapper.QueryAsync<T>(Connection, "SELECT * FROM " + _tableName);
+                return await WithConnection(async c => {                    
+                    var results = await c.QueryAsync<T>("SELECT * FROM " + _tableName);
                     return results;
-                }
-            }
-
-
-        }
-
-        public virtual T GetById(long id)
-        {
-            T item = default(T);
-            //using (IDbConnection cn = Connection)
-            {
-                //cn.Open();
-                item = SqlMapper.QueryFirstOrDefault<T>(Connection, "SELECT * FROM " + _tableName + " WHERE ID=@ID", new { ID = id });
-            }
-
-            return item;
-        }
-
-        public async virtual Task<T> GetByIdAsync(long id)
-        {
-            Task<T> item = default(Task<T>);
-            //using (IDbConnection cn = Connection)
-            {
-                //cn.Open();
-                item = SqlMapper.QueryFirstOrDefaultAsync<T>(Connection, "SELECT * FROM " + _tableName + " WHERE ID=@ID", new { ID = id });
-            }
-
-            return await item;
-        }
-
-        public virtual void Insert(T entity)
-        {
-            //using (IDbConnection conn = Connection)
-            {
-                var parameters = (object)Mapping(entity);
-                string insertQuery = DynamicQuery.GetInsertQuery(_tableName, parameters);
-                //conn.Open();
-                entity.ID = SqlMapper.Query<int>(Connection, insertQuery).Single();
+                });
             }
         }
+
+        
+        public virtual async Task<T> GetByIdAsync(long id)
+        {         
+            return await WithConnection(async c => {
+
+                return await c.QueryFirstOrDefaultAsync<T>("SELECT * FROM " + _tableName + " WHERE ID=@ID", new { ID = id });
+
+            });
+        }
+        
         private static string BuildInsertValues(T entity)
         {
             StringBuilder sb = new StringBuilder();
@@ -160,16 +127,26 @@ namespace BankOne.ReversalEngine.Data
             return sb.ToString();
         }
 
-        public virtual void Update(T entity)
+        public virtual async Task<int> InsertAsync(T entity)
         {
-            //using (IDbConnection conn = Connection)
-            {
-                var parameters = (object)Mapping(entity);
+            return await WithConnection(async c => {
 
+                var parameters = (object)Mapping(entity);
+                string insertQuery = DynamicQuery.GetInsertQuery(_tableName, parameters);
                 //conn.Open();
-                string updateQuery = DynamicQuery.GetUpdateQuery(_tableName, parameters);
-                SqlMapper.Execute(Connection, updateQuery, entity);
-            }
+                IEnumerable<int> result = await c.QueryAsync<int>(insertQuery);
+                return result.SingleOrDefault();
+            });
+        }
+
+        public virtual async Task<int> UpdateAsync(T entity)
+        {
+            return await WithConnection(async c => {
+                var parameters = (object)Mapping(entity);
+                string updateQuery = DynamicQuery.GetUpdateQueryForIdentity(_tableName, parameters);
+                return await c.ExecuteAsync(updateQuery, entity);
+
+            });
         }
     }
 }
