@@ -58,16 +58,23 @@ namespace BankOne.ReversalEngine.Data
             return item;
         }
 
-        public virtual async Task DeleteAsync(T entity)
+        public virtual async Task<int> DeleteAsync(T entity)
         {
             //using (IDbConnection conn = Connection)
-            {
-                //conn.Open();
-                SqlMapper.Execute(Connection, "DELETE FROM " + _tableName + " WHERE ID=@ID", new { ID = entity.ID });
-            }
+            //{
+            //conn.Open();
+            //SqlMapper.Execute(Connection, "DELETE FROM " + _tableName + " WHERE ID=@ID", new { ID = entity.ID });
+            //}
+            int rowsAffected = 0;
             await WithConnection(async c => {
-                return await c.ExecuteAsync( "DELETE FROM " + _tableName + " WHERE ID=@ID", new { ID = entity.ID });
+                using (var transaction = c.BeginTransaction())
+                {
+                    rowsAffected = await c.ExecuteAsync("DELETE FROM " + _tableName + " WHERE ID=@ID", new { ID = entity.ID });
+                    transaction.Commit();
+                    return rowsAffected;
+                }
             });
+            return rowsAffected;
         }
 
         public virtual async Task DeleteByIdAsync(long id)
@@ -98,7 +105,27 @@ namespace BankOne.ReversalEngine.Data
             }
         }
 
-        
+        public virtual async Task<IEnumerable<T>> GetTopNAsync(Expression<Func<T, bool>> filter = null, Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null, string includeProperties = "", int noOfItems = 0)
+        {
+
+            // extract the dynamic sql query and parameters from predicate
+            if (filter != null)
+            {
+                QueryResult result = DynamicQuery.GetTopNDynamicQuery(_tableName, filter, noOfItems);
+                return await WithConnection(async c => {
+                    var results = await c.QueryAsync<T>(result.Sql, (object)result.Param);
+                    return results;
+                });
+            }
+            else
+            {
+                return await WithConnection(async c => {
+                    var results = await c.QueryAsync<T>("SELECT * FROM " + _tableName);
+                    return results;
+                });
+            }
+        }
+
         public virtual async Task<T> GetByIdAsync(long id)
         {         
             return await WithConnection(async c => {
@@ -130,22 +157,28 @@ namespace BankOne.ReversalEngine.Data
         public virtual async Task<int> InsertAsync(T entity)
         {
             return await WithConnection(async c => {
-
-                var parameters = (object)Mapping(entity);
-                string insertQuery = DynamicQuery.GetInsertQuery(_tableName, parameters);
-                //conn.Open();
-                IEnumerable<int> result = await c.QueryAsync<int>(insertQuery);
-                return result.SingleOrDefault();
+                using (var transaction = c.BeginTransaction())
+                {
+                    var parameters = (object)Mapping(entity);
+                    string insertQuery = DynamicQuery.GetInsertQuery(_tableName, parameters);
+                    //conn.Open();
+                    IEnumerable<int> result = await c.QueryAsync<int>(insertQuery);
+                    transaction.Commit();
+                    return result.SingleOrDefault();
+                }                
             });
         }
 
         public virtual async Task<int> UpdateAsync(T entity)
         {
             return await WithConnection(async c => {
-                var parameters = (object)Mapping(entity);
-                string updateQuery = DynamicQuery.GetUpdateQueryForIdentity(_tableName, parameters);
-                return await c.ExecuteAsync(updateQuery, entity);
-
+                using (var transaction = c.BeginTransaction())
+                {
+                    var parameters = (object)Mapping(entity);
+                    string updateQuery = DynamicQuery.GetUpdateQueryForIdentity(_tableName, parameters);
+                    transaction.Commit();
+                    return await c.ExecuteAsync(updateQuery, entity);
+                }
             });
         }
     }

@@ -9,3 +9,6 @@ C:\BankOne.ReversalEngine\BankOneReversal\bin\Debug\RepoWrapper.dll
 C:\BankOne.ReversalEngine\BankOneReversal\bin\Debug\Dapper.xml
 C:\BankOne.ReversalEngine\BankOneReversal\bin\Debug\Newtonsoft.Json.xml
 C:\BankOne.ReversalEngine\BankOneReversal\bin\Debug\RepoWrapper.pdb
+C:\BankOne.ReversalEngine\BankOneReversal\bin\Debug\Polly.dll
+C:\BankOne.ReversalEngine\BankOneReversal\bin\Debug\Polly.pdb
+C:\BankOne.ReversalEngine\BankOneReversal\bin\Debug\Polly.xml

@@ -30,3 +30,6 @@ C:\BankOne.ReversalEngine\BankOne.ReversalEngine\bin\Debug\Dapper.dll
 C:\BankOne.ReversalEngine\BankOne.ReversalEngine\bin\Debug\RepoWrapper.dll
 C:\BankOne.ReversalEngine\BankOne.ReversalEngine\bin\Debug\Dapper.xml
 C:\BankOne.ReversalEngine\BankOne.ReversalEngine\bin\Debug\RepoWrapper.pdb
+C:\BankOne.ReversalEngine\BankOne.ReversalEngine\bin\Debug\Polly.dll
+C:\BankOne.ReversalEngine\BankOne.ReversalEngine\bin\Debug\Polly.pdb
+C:\BankOne.ReversalEngine\BankOne.ReversalEngine\bin\Debug\Polly.xml

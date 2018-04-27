@@ -21,6 +21,7 @@ namespace BankOne.ReversalEngine.Model
     public enum ReversalStatus
     {
         Pending,
+        Processing,
         Successful,
         Failed
     }

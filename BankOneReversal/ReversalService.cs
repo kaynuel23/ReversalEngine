@@ -58,7 +58,8 @@ namespace BankOneReversal
             catch (Exception ex)
             {
                 System.Diagnostics.Trace.TraceError(String.Format("{0} : {1}", ex.Message, ex.StackTrace));
-                return false;
+                throw ex;
+                //return false;
             }
         }
     }

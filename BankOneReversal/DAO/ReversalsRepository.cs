@@ -35,6 +35,13 @@ namespace BankOne.ReversalEngine.Data
                 });
             });
         }
+        public async Task<int> BulkUpdate(List<Reversals> entities)
+        {
+            string updateQuery = $@"UPDATE {_tableName} SET REVERSALSTATUS = 1 WHERE ID=@ID";
+            return await WithConnection(async c => {
+                return await c.ExecuteAsync(updateQuery, entities);
+            });
+        }
         public async Task<int> Insert(string MFBCode,  string uniqueIdentifier)
         {            
             string insertQuery = @"INSERT INTO [Reversals] ([MFBCode],[UniqueIdentifier])
