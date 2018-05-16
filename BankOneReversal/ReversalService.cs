@@ -52,7 +52,24 @@ namespace BankOneReversal
                     request.Headers[HttpRequestHeader.ContentType] = "application/json";
                     //request.UploadStringCompleted += new UploadStringCompletedEventHandler(wc_UploadStringCompleted);
                     string response = await request.UploadStringTaskAsync(new Uri(uri), "POST", "");
-                    return JsonConvert.DeserializeObject<bool>(response);
+                    System.Diagnostics.Trace.TraceError($"response is {response}");
+                    var reversalSuccess = JsonConvert.DeserializeObject<bool>(response);
+                    publishInfo = new TempClassForPublish
+                    {
+                        Institution = institutionCode,
+                        UniqueId = uniqueIdentifier,
+                        IsResponse = "true",
+                        PostingResponse = reversalSuccess ? "Successfull" : "Failed",
+                        PostingType = "6"
+                    };
+                    publishInfoMessage = TempClassForPublish.ConvertToCommaSeparated(publishInfo, "2", reversalSuccess ? "00" : "06");
+                    redisAPI.APIMethod(PublisherAPI.ConvertObjectToString(publishInfoMessage));
+
+                    publishInfoMessage = TempClassForPublish.ConvertToCommaSeparated(publishInfo, "3", reversalSuccess ? "00" : "06");
+                    redisAPI.APIMethod(PublisherAPI.ConvertObjectToString(publishInfoMessage));
+                    if (reversalSuccess)
+                        return reversalSuccess;
+                    throw new Exception("Reversal was dishonoured");
                 }
             }
             catch (Exception ex)

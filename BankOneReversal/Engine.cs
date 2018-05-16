@@ -65,7 +65,7 @@ namespace BankOneReversal
                             //log error here and to grafana
                             logger.Log($"An Error occured: {exception.Message} - {exception.StackTrace}");
                             reversal.RetryCount += 1;
-                            reversal.ReversalStatus = ReversalStatus.Processing;
+                            reversal.ReversalStatus = ReversalStatus.Processing;                            
                             await guow.Repository<Reversals>().UpdateAsync(reversal);
                         })
                         .ExecuteAsync(async () =>
@@ -75,6 +75,7 @@ namespace BankOneReversal
                         logger.Log($"Done Processing");
                         //Update that it has been processed
                         reversal.ReversalStatus = ReversalStatus.Successful;
+                        reversal.DateProcessed = DateTime.Now;
                         await guow.Repository<Reversals>().UpdateAsync(reversal);
                         //new ReversalsRepository("Reversals").Update(reversal);
                         logger.Log($"Done Updating");
@@ -91,7 +92,9 @@ namespace BankOneReversal
                     //}
                 });
 
-                //this.timer.Interval = 100 * Convert.ToInt64(ConfigurationManager.AppSettings["BankOne.ReversalEngine.TimerInterval"]);
+                this.timer.Interval = results == null || results.Count() == 0 ?
+                    10 * Convert.ToInt64(ConfigurationManager.AppSettings["BankOne.ReversalEngine.TimerInterval"]) :
+                     Convert.ToInt64(ConfigurationManager.AppSettings["BankOne.ReversalEngine.TimerInterval"]);
             }
             catch (Exception ex)
             {

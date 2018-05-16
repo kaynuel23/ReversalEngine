@@ -26,10 +26,12 @@ namespace BankOne.ReversalEngine
     public class ReversalController : ApiController
     {
         GenericUnitOfWork uow = null;
+        ReversalsRepository reversalDAO = null;
         private BankOneReversal.Tracing.Logger logger;
         public ReversalController()
         {
             uow = new GenericUnitOfWork("Reversals");
+            reversalDAO = new ReversalsRepository("Reversals");
             logger = new BankOneReversal.Tracing.Logger();
         }
         [Route("DoTransactionReversalByUniqueIdentifier")]
@@ -42,14 +44,15 @@ namespace BankOne.ReversalEngine
                 //check if it has been sent before
                 //return true if so
                 logger.Log($"Log {uniqueIdentifier} for {mfbCode}");
-                IEnumerable <Reversals> reversals = await uow.Repository<Reversals>().GetAsync(filter: x => x.UniqueIdentifier == uniqueIdentifier && x.MFBCode == mfbCode);
-                if(reversals != null || reversals.Count() > 0)
+                int reversalCount = await reversalDAO.ReversalExists(mfbCode, uniqueIdentifier);
+                    //uow.Repository<Reversals>().GetAsync(filter: x => x.UniqueIdentifier == uniqueIdentifier && x.MFBCode == mfbCode);
+                if (reversalCount > 0)
                 {
                     logger.Log($"Exists {uniqueIdentifier} for {mfbCode}");
                     return true;
                 }
-                int result = await uow.Repository<Reversals>().InsertAsync(new Reversals() { UniqueIdentifier = uniqueIdentifier, MFBCode = mfbCode });
-                //new ReversalsRepository("Reversals").Insert(mfbCode, uniqueIdentifier);
+                //int result = await uow.Repository<Reversals>().InsertAsync(new Reversals() { UniqueIdentifier = uniqueIdentifier, MFBCode = mfbCode, DateLogged = DateTime.Now });
+                await reversalDAO.Insert(mfbCode, uniqueIdentifier);
                 logger.Log($"Done Logging {uniqueIdentifier} for {mfbCode}");
                 return true;
             }

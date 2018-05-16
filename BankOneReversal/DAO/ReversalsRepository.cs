@@ -16,11 +16,21 @@ namespace BankOne.ReversalEngine.Data
         {
             _tableName = tableName;
         }
+
         public async Task<IEnumerable<Reversals>> GetPendingReversals()
         {
             return await WithConnection(async c => {
                 var results = await c.QueryAsync<Reversals>($"SELECT top 20 * FROM {_tableName} where REVERSALSTATUS = @REVERSALSTATUS", new { REVERSALSTATUS = ReversalStatus.Pending });
                 return results;
+            });
+        }
+        public async Task<int> ReversalExists(string mfbCode, string uniqueIdentifier)
+        {
+            return await WithConnection(async c => {
+                var results = await c.QueryAsync<int>($@"SELECT count(*) FROM {_tableName} 
+                                where MFBCODE = @MFBCODE and UNIQUEIDENTIFIER = @UNIQUEIDENTIFIER",
+                                new { MFBCODE = mfbCode, UNIQUEIDENTIFIER = uniqueIdentifier });
+                return results.FirstOrDefault();
             });
         }
 
@@ -44,14 +54,17 @@ namespace BankOne.ReversalEngine.Data
         }
         public async Task<int> Insert(string MFBCode,  string uniqueIdentifier)
         {            
-            string insertQuery = @"INSERT INTO [Reversals] ([MFBCode],[UniqueIdentifier])
+            string insertQuery = @"INSERT INTO [Reversals] ([MFBCode],[UniqueIdentifier],[DateLogged],[ReversalStatus],[RetryCount])
                                         OUTPUT inserted.ID 
-                                        VALUES (@MFBCode,@UniqueIdentifier)";
+                                        VALUES (@MFBCode,@UniqueIdentifier,@DateLogged,@ReversalStatus,@RetryCount)";
             return await WithConnection(async c => {
                 IEnumerable<int> result = await c.QueryAsync<int>(insertQuery, new
                 {
                     MFBCode = MFBCode,
-                    UniqueIdentifier = uniqueIdentifier
+                    UniqueIdentifier = uniqueIdentifier,
+                    DateLogged = DateTime.Now,
+                    ReversalStatus = ReversalStatus.Pending,
+                    RetryCount = 0
                 });
                 return result.SingleOrDefault();
             });

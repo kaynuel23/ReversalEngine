@@ -157,13 +157,13 @@ namespace BankOne.ReversalEngine.Data
         public virtual async Task<int> InsertAsync(T entity)
         {
             return await WithConnection(async c => {
-                using (var transaction = c.BeginTransaction())
+                var parameters = (object)Mapping(entity);
+                string insertQuery = DynamicQuery.GetInsertQuery(_tableName, parameters);
+                //using (var transaction = c.BeginTransaction())
                 {
-                    var parameters = (object)Mapping(entity);
-                    string insertQuery = DynamicQuery.GetInsertQuery(_tableName, parameters);
                     //conn.Open();
                     IEnumerable<int> result = await c.QueryAsync<int>(insertQuery);
-                    transaction.Commit();
+                    //transaction.Commit();
                     return result.SingleOrDefault();
                 }                
             });
@@ -172,11 +172,11 @@ namespace BankOne.ReversalEngine.Data
         public virtual async Task<int> UpdateAsync(T entity)
         {
             return await WithConnection(async c => {
-                using (var transaction = c.BeginTransaction())
+                var parameters = (object)Mapping(entity);
+                string updateQuery = DynamicQuery.GetUpdateQueryForIdentity(_tableName, parameters);
+                //using (var transaction = c.BeginTransaction())
                 {
-                    var parameters = (object)Mapping(entity);
-                    string updateQuery = DynamicQuery.GetUpdateQueryForIdentity(_tableName, parameters);
-                    transaction.Commit();
+                    //transaction.Commit();
                     return await c.ExecuteAsync(updateQuery, entity);
                 }
             });
